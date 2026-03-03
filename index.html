@@ -229,7 +229,7 @@ select {
 <script>
 // State
 let mode = "summer"; 
-let lang = navigator.language.startsWith('ja') ? "ja" : "en";
+let lang;
 let currentYearKey = null;
 
 // Data
@@ -285,6 +285,7 @@ function setMode(m) {
 
 function toggleLang() {
   lang = (lang === "ja") ? "en" : "ja";
+  localStorage.setItem('olympicCountdownLang', lang);
   updateUI();
 }
 
@@ -318,9 +319,19 @@ function initAutoSelect() {
   const params = new URLSearchParams(location.search);
   const qYear = params.get("year");
   const qLang = params.get("lang");
-
-  if (qLang === "ja" || qLang === "en") lang = qLang;
-
+  
+  // Determine language: query param > localStorage > browser default
+  if (qLang === "ja" || qLang === "en") {
+    lang = qLang;
+  } else {
+    const storedLang = localStorage.getItem('olympicCountdownLang');
+    if (storedLang === "ja" || storedLang === "en") {
+      lang = storedLang;
+    } else {
+      lang = navigator.language.startsWith('ja') ? "ja" : "en";
+    }
+  }
+  
   if (qYear) {
     if (eventsData.summer[qYear]) { mode = "summer"; currentYearKey = qYear; return; }
     if (eventsData.winter[qYear]) { mode = "winter"; currentYearKey = qYear; return; }
