@@ -170,5 +170,19 @@ a.back-btn:hover {
 })();
 </script>
 
+<script>
+(function(){
+  const hostname = location.hostname;
+  const path = location.pathname;
+  if(hostname === "hamuzon.github.io"){
+    if(path === "/" || path.includes("404")){
+      setTimeout(() => {
+        location.replace("/olympic/");
+      }, 800);
+    }
+  }
+})();
+</script>
+
 </body>
 </html>
