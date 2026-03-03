@@ -141,6 +141,14 @@ a.back-btn:hover {
 </div>
 
 <script>
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (location.hostname === 'hamuzon.github.io' || location.hostname === 'hamuzon.github.io/olympic/') {
+        document.getElementById('backLink').href = 'https://hamuzon.github.io/olympic/';
+      }
+    });
+    
+
 // Footer Logic
 (function(){
   const baseYear = 2025;
@@ -167,20 +175,6 @@ a.back-btn:hover {
   }
   
   if(footer) footer.innerHTML = footerHTML;
-})();
-</script>
-
-<script>
-(function(){
-  const hostname = location.hostname;
-  const path = location.pathname;
-  if(hostname === "hamuzon.github.io"){
-    if(path === "/" || path.includes("404")){
-      setTimeout(() => {
-        location.replace("/olympic/");
-      }, 800);
-    }
-  }
 })();
 </script>
 
