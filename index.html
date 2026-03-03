@@ -280,6 +280,8 @@ function setMode(m) {
   mode = m;
   // モード切替時は、そのモードの直近の未来（または最新）の大会を選択する
   autoSelectNearestInMode(m);
+  localStorage.setItem('olympicCountdownMode', mode);
+  localStorage.setItem('olympicCountdownYear', currentYearKey);
   updateUI();
 }
 
@@ -291,6 +293,8 @@ function toggleLang() {
 
 function changeYear(y) {
   currentYearKey = y;
+  localStorage.setItem('olympicCountdownMode', mode);
+  localStorage.setItem('olympicCountdownYear', currentYearKey);
   updateUI();
 }
 
@@ -335,6 +339,15 @@ function initAutoSelect() {
   if (qYear) {
     if (eventsData.summer[qYear]) { mode = "summer"; currentYearKey = qYear; return; }
     if (eventsData.winter[qYear]) { mode = "winter"; currentYearKey = qYear; return; }
+  }
+
+  // ローカルストレージから前回の選択を読み込む
+  const storedMode = localStorage.getItem('olympicCountdownMode');
+  const storedYear = localStorage.getItem('olympicCountdownYear');
+  if (storedMode && storedYear && eventsData[storedMode] && eventsData[storedMode][storedYear]) {
+    mode = storedMode;
+    currentYearKey = storedYear;
+    return;
   }
 
   const now = new Date();
