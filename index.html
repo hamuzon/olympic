@@ -196,6 +196,18 @@ select {
   text-decoration: underline;
 }
 
+.notice {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.78);
+  text-align: left;
+}
+
+.notice p {
+  margin: 0.2rem 0;
+}
+
 /* スマホ対応 */
 @media (max-width: 480px) {
   .container { padding: 2rem 1.5rem; }
@@ -227,6 +239,8 @@ select {
     <div id="dayDisplay"></div>
     <div id="timeDisplay"></div>
   </div>
+
+  <div class="notice" id="countdownNotice" aria-live="polite"></div>
 
   <div class="footer" id="footer-copy"></div>
 </div>
@@ -423,6 +437,14 @@ function updateUI() {
   // Update Title
   const mainTitle = document.querySelector("h1");
   mainTitle.textContent = lang === "ja" ? "オリンピック カウントダウン" : "Olympic Countdown";
+
+  const notice = document.getElementById("countdownNotice");
+  if (notice) {
+    notice.innerHTML = `
+      <p>※表示されているカウントダウンは目安であり、正確な開催時刻とは異なる場合があります。</p>
+      <p>Please note: The countdown shown is for reference only and may differ from the actual event start time.</p>
+    `;
+  }
 
   // Update Select Box
   const select = document.getElementById("yearSelect");
