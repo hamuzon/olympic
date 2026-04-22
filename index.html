@@ -34,7 +34,7 @@ body {
   background: #0a1a2b;
   font-family: 'Roboto', sans-serif;
   color: #fff;
-  display: flex !important;
+  display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
@@ -45,16 +45,12 @@ body {
 
 /* コンテナ */
 .container {
-  display: flex !important;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.08);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 24px;
-  padding: 3rem 2rem;
+  padding: 2.5rem 2rem;
   max-width: 480px;
   width: 100%;
   box-shadow: 0 0 40px rgba(0, 229, 255, 0.3);
@@ -102,16 +98,15 @@ h2 {
 }
 
 #dayDisplay {
-  font-family: Arial, sans-serif;
-  font-size: 2.5rem;
+  font-size: 3rem;
   font-weight: 700;
   background: linear-gradient(90deg, #ffd54f, #ffca28, #ffecb3);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-  line-height: 1;
-  margin-bottom: 0.5rem;
+  line-height: 1.1;
+  margin: 0.5rem 0;
 }
 
 #timeDisplay {
@@ -246,6 +241,12 @@ select {
 </div>
 
 <script>
+// --- CONFIGURATION (1: ON, 0: OFF) ---
+const CONFIG = {
+  SUMMER_ENABLED: 1,
+  WINTER_ENABLED: 1
+};
+
 // State
 let mode = "summer"; 
 let lang;
@@ -267,37 +268,50 @@ const eventsData = {
   }
 };
 
+/**
+ * 残り時間のフォーマット計算
+ * @param {number} ms 差分（ミリ秒）
+ */
+/**
+ * 残り時間のフォーマット計算
+ */
 function formatDiff(ms) {
-  let sec = Math.floor(ms / 1000);
-  const y = Math.floor(sec / (365 * 24 * 3600)); sec -= y * 365 * 24 * 3600;
-  const mo = Math.floor(sec / (30 * 24 * 3600)); sec -= mo * 30 * 24 * 3600;
-  const d = Math.floor(sec / (24 * 3600)); sec -= d * 24 * 3600;
-  const h = Math.floor(sec / 3600); sec -= h * 3600;
-  const m = Math.floor(sec / 60); sec -= m * 60;
-  const s = sec;
+  const sTotal = Math.floor(ms / 1000);
+  const pad = (n) => String(n).padStart(2, '0');
 
-  let ymd_str = "";
-  if (y > 0) ymd_str += `${y}${lang === 'ja' ? '年 ' : 'y '}`;
-  if (mo > 0) ymd_str += `${mo}${lang === 'ja' ? 'ヶ月 ' : 'mo '}`;
-  ymd_str += `${d}${lang === 'ja' ? '日' : 'd'}`;
-  
-  let hms_str;
-  if (lang === 'ja') {
-    hms_str = `${String(h).padStart(2, '0')}時間 ${String(m).padStart(2, '0')}分 ${String(s).padStart(2, '0')}秒`;
-  } else {
-    hms_str = `${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
+  // 年・月・日の計算
+  const y = Math.floor(sTotal / 31536000);
+  const mo = Math.floor((sTotal % 31536000) / 2592000);
+  const d = Math.floor((sTotal % 2592000) / 86400);
+
+  // 時・分・秒の計算
+  const h = Math.floor((sTotal % 86400) / 3600);
+  const m = Math.floor((sTotal % 3600) / 60);
+  const s = sTotal % 60;
+
+  // 表示用文字列の組み立て
+  let ymdStr = "";
+  if (y > 0) {
+    ymdStr += `${y}${lang === 'ja' ? '年' : 'y'} `;
   }
+  if (mo > 0) {
+    ymdStr += `${mo}${lang === 'ja' ? 'ヶ月' : 'mo'} `;
+  }
+  ymdStr += `${d}${lang === 'ja' ? '日' : 'd'}`;
 
-  return {
-      ymd: ymd_str.trim(),
-      hms: hms_str
-  };
+  const hmsStr = lang === 'ja'
+    ? `${h}時間 ${m}分 ${s}秒`
+    : `${pad(h)}h ${pad(m)}m ${pad(s)}s`;
+
+  return { ymd: ymdStr, hms: hmsStr };
 }
 
 // UI Functions
 function setMode(m) {
+  if (m === 'summer' && !CONFIG.SUMMER_ENABLED) return;
+  if (m === 'winter' && !CONFIG.WINTER_ENABLED) return;
+
   mode = m;
-  // モード切替時は、そのモードの直近の未来（または最新）の大会を選択する
   autoSelectNearestInMode(m);
   localStorage.setItem('olympicCountdownMode', mode);
   localStorage.setItem('olympicCountdownYear', currentYearKey);
@@ -305,166 +319,112 @@ function setMode(m) {
 }
 
 function toggleLang() {
-  lang = (lang === "ja") ? "en" : "ja";
+  lang = lang === "ja" ? "en" : "ja";
   localStorage.setItem('olympicCountdownLang', lang);
   updateUI();
 }
 
 function changeYear(y) {
   currentYearKey = y;
-  localStorage.setItem('olympicCountdownMode', mode);
   localStorage.setItem('olympicCountdownYear', currentYearKey);
   updateUI();
 }
 
 function autoSelectNearestInMode(m) {
-  const now = new Date();
+  const now = Date.now();
   const years = Object.keys(eventsData[m]).sort();
   
-  // 未来の大会を探す
-  let selected = null;
-  for (let y of years) {
-    const end = new Date(eventsData[m][y].end);
-    if (end > now) {
-      selected = y;
-      break;
-    }
-  }
-  // 未来がなければ最後の大会
-  if (!selected) {
-    selected = years[years.length - 1];
-  }
-  currentYearKey = selected;
+  // 未来の大会、または一番新しい大会を選択
+  const futureYear = years.find(y => new Date(eventsData[m][y].end).getTime() > now);
+  currentYearKey = futureYear || years[years.length - 1];
 }
 
 function initAutoSelect() {
-  // クエリパラメータの確認 (?year=2028&lang=en)
   const params = new URLSearchParams(location.search);
+
+  // リセット判定: reset, reboot, restart のいずれかが 1 または ON の場合
+  const isReset = ["reset", "reboot", "restart"].some(k => 
+    ["1", "on"].includes(params.get(k)?.toLowerCase())
+  );
+
   const qYear = params.get("year");
   const qLang = params.get("lang");
-  
-  // Determine language: query param > localStorage > browser default
+
+  // 言語の初期化（URL優先）
   if (qLang === "ja" || qLang === "en") {
     lang = qLang;
   } else {
-    const storedLang = localStorage.getItem('olympicCountdownLang');
-    if (storedLang === "ja" || storedLang === "en") {
-      lang = storedLang;
-    } else {
-      lang = navigator.language.startsWith('ja') ? "ja" : "en";
+    lang = (!isReset && localStorage.getItem('olympicCountdownLang')) || 
+           (navigator.language.startsWith('ja') ? "ja" : "en");
+  }
+
+  // 年・モードの初期化（URL優先）
+  if (qYear) {
+    if (eventsData.summer[qYear]) {
+      mode = "summer";
+      currentYearKey = qYear;
+    } else if (eventsData.winter[qYear]) {
+      mode = "winter";
+      currentYearKey = qYear;
     }
   }
-  
-  if (qYear) {
-    if (eventsData.summer[qYear]) { mode = "summer"; currentYearKey = qYear; return; }
-    if (eventsData.winter[qYear]) { mode = "winter"; currentYearKey = qYear; return; }
-  }
 
-  // ローカルストレージから前回の選択を読み込む
-  const storedMode = localStorage.getItem('olympicCountdownMode');
-  const storedYear = localStorage.getItem('olympicCountdownYear');
-  if (storedMode && storedYear && eventsData[storedMode] && eventsData[storedMode][storedYear]) {
-    mode = storedMode;
-    currentYearKey = storedYear;
-    return;
-  }
+  // URLで指定がない、またはリセット指定がある場合はストレージを無視して自動選択
+  if (!currentYearKey) {
+    mode = (!isReset && localStorage.getItem('olympicCountdownMode')) || "summer";
+    const storedYear = !isReset && localStorage.getItem('olympicCountdownYear');
 
-  const now = new Date();
-  let nearestDiff = Infinity;
-  let bestMode = "summer";
-  let bestYear = null;
-
-  // 全データから現在時刻以降で最も近い開始日の大会を探す
-  // もし全て終了していれば、最も終了日が近い（直近の）大会を探す
-  
-  // まずは未来の大会を優先検索
-  ["summer", "winter"].forEach(m => {
-    Object.keys(eventsData[m]).forEach(y => {
-      const start = new Date(eventsData[m][y].start);
-      const end = new Date(eventsData[m][y].end);
-      
-      if (end > now) {
-        // まだ終わっていない大会
-        let diff = start - now;
-        // 開催中なら優先度最高（diffをマイナスにして扱うなど）
-        if (start <= now && now <= end) {
-          diff = -1; 
-        }
-        
-        if (diff < nearestDiff) {
-          nearestDiff = diff;
-          bestMode = m;
-          bestYear = y;
-        }
-      }
-    });
-  });
-
-  // 未来の大会が見つからなかった場合（全て過去）、直近の過去大会を探す
-  if (!bestYear) {
-    let minPastDiff = Infinity;
-    ["summer", "winter"].forEach(m => {
-      Object.keys(eventsData[m]).forEach(y => {
-        const end = new Date(eventsData[m][y].end);
-        const diff = now - end;
-        if (diff < minPastDiff) {
-          minPastDiff = diff;
-          bestMode = m;
-          bestYear = y;
-        }
-      });
-    });
-  }
-
-  if (bestYear) {
-    mode = bestMode;
-    currentYearKey = bestYear;
-  } else {
-    // フォールバック
-    mode = "summer";
-    currentYearKey = "2028";
+    if (storedYear && eventsData[mode][storedYear]) {
+      currentYearKey = storedYear;
+    } else {
+      autoSelectNearestInMode(mode);
+    }
   }
 }
 
+// UIの更新 / Update UI elements
 function updateUI() {
-  // Update Buttons
-  document.getElementById("summerBtn").className = mode === "summer" ? "active" : "";
-  document.getElementById("winterBtn").className = mode === "winter" ? "active" : "";
-  document.getElementById("summerBtn").textContent = lang === "ja" ? "夏季" : "Summer";
-  document.getElementById("winterBtn").textContent = lang === "ja" ? "冬季" : "Winter";
-  document.getElementById("langBtn").textContent = lang === "ja" ? "EN" : "日本語";
+  const sBtn = document.getElementById("summerBtn");
+  const wBtn = document.getElementById("winterBtn");
+  const lBtn = document.getElementById("langBtn");
+
+  sBtn.className = mode === "summer" ? "active" : "";
+  wBtn.className = mode === "winter" ? "active" : "";
+  sBtn.style.display = CONFIG.SUMMER_ENABLED ? "inline-block" : "none";
+  wBtn.style.display = CONFIG.WINTER_ENABLED ? "inline-block" : "none";
   
-  // Update Title
+  sBtn.textContent = lang === "ja" ? "夏季" : "Summer";
+  wBtn.textContent = lang === "ja" ? "冬季" : "Winter";
+  lBtn.textContent = lang === "ja" ? "EN" : "日本語";
+  
   const mainTitle = document.querySelector("h1");
   mainTitle.textContent = lang === "ja" ? "オリンピック カウントダウン" : "Olympic Countdown";
 
   const notice = document.getElementById("countdownNotice");
   if (notice) {
-    notice.innerHTML = "";
-    const p = document.createElement("p");
-    p.textContent = lang === "ja"
-      ? "※表示されているカウントダウンは目安であり、正確な開催時刻とは異なる場合があります。"
-      : "Please note: The countdown shown is for reference only and may differ from the actual event start time.";
-    notice.appendChild(p);
+    notice.textContent = lang === "ja"
+      ? "※カウントダウンは目安であり、実際の開催時刻と異なる場合があります。"
+      : "Note: Countdown is for reference only and may differ from actual start times.";
   }
 
-  // Update Select Box
   const select = document.getElementById("yearSelect");
   select.innerHTML = "";
+
   const years = Object.keys(eventsData[mode]);
+
   years.forEach(y => {
     const opt = document.createElement("option");
     opt.value = y;
-    const city = eventsData[mode][y].city[lang];
-    opt.textContent = `${y} ${city}`;
-    if (y == currentYearKey) opt.selected = true;
+    opt.textContent = `${y} ${eventsData[mode][y].city[lang]}`;
+    opt.selected = (y === currentYearKey);
     select.appendChild(opt);
   });
   
-  // Update Logic
   updateCountdown();
+  updateQueryParams();
 }
 
+// カウントダウンのメインロジック / Main Countdown Logic
 function updateCountdown() {
   if (!currentYearKey) return;
 
@@ -478,49 +438,68 @@ function updateCountdown() {
   const timeDisplay = document.getElementById("timeDisplay");
   const eventTitle = document.getElementById("eventTitle");
   
-  // Event Title
   const cityName = data.city[lang];
-  const season = (mode === "summer") ? (lang === "ja" ? "夏季" : "Summer") : (lang === "ja" ? "冬季" : "Winter");
-  eventTitle.textContent = `${currentYearKey} ${cityName} ${season}`;
 
+  eventTitle.textContent = `${currentYearKey} ${cityName}`;
+
+  // 開催期間中・前後による分岐 / Branch by event status
   if (now >= start && now <= end) {
-    // 開催中
     const diffStart = now - start;
     const diffEnd = end - now;
+
     const dayNum = Math.floor(diffStart / (1000 * 60 * 60 * 24)) + 1;
     const remaining = formatDiff(diffEnd);
     
     statusDisplay.textContent = (lang === "ja" ? `大会 ${dayNum} 日目 / 残り` : `Day ${dayNum} / Remaining`);
     dayDisplay.textContent = remaining.ymd;
     timeDisplay.textContent = remaining.hms;
-
-  } else {
+  } 
+  else {
     let diff, prefix;
+
     if (now < start) {
-      // 開催前
       diff = start - now;
       prefix = lang === "ja" ? "開催まで" : "Starts in";
     } else {
-      // 終了後
       diff = now - end;
       prefix = lang === "ja" ? "終了から" : "Since closing";
     }
+
     statusDisplay.textContent = prefix;
+
     const formatted = formatDiff(diff);
+
     dayDisplay.textContent = formatted.ymd;
     timeDisplay.textContent = formatted.hms;
   }
 }
 
-// Footer Logic
+// URLクエリパラメータの同期 / Sync URL Query Parameters
+function updateQueryParams() {
+  const url = new URL(window.location.href);
+
+  url.searchParams.set('year', currentYearKey);
+  url.searchParams.set('lang', lang);
+
+  // 整理: 不要なパラメータを削除 / Clean up: Remove unnecessary params
+  ["type", "reset", "reboot", "restart"].forEach(key => {
+    url.searchParams.delete(key);
+  });
+
+  window.history.replaceState({}, '', url.toString());
+}
+
+// フッターの著作権表示ロジック / Footer Copyright Logic
 (function(){
   const baseYear = 2025;
   const currentYear = new Date().getFullYear();
   const hostname = location.hostname;
   const footer = document.getElementById("footer-copy");
+
   let footerHTML = "";
-  
   let yearStr = baseYear.toString();
+
+  // 年度範囲の決定 / Determine year range
   if (currentYear > baseYear) {
     yearStr = `${baseYear}–${currentYear}`;
   } else if (currentYear < baseYear) {
@@ -540,7 +519,7 @@ function updateCountdown() {
   if(footer) footer.innerHTML = footerHTML;
 })();
 
-// Init
+// 初期実行 / Initial execution
 initAutoSelect();
 updateUI();
 setInterval(updateCountdown, 1000);
