@@ -476,17 +476,16 @@ function updateCountdown() {
 
 // URLクエリパラメータの同期 / Sync URL Query Parameters
 function updateQueryParams() {
-  const url = new URL(window.location.href);
+  // 新しい URLSearchParams オブジェクトを作成することで、既存の全パラメータをクリア
+  const newParams = new URLSearchParams();
 
-  url.searchParams.set('year', currentYearKey);
-  url.searchParams.set('lang', lang);
+  // 指定された順序（1. 年, 2. 言語）でパラメータをセット
+  if (currentYearKey) newParams.set('year', currentYearKey);
+  newParams.set('lang', lang);
 
-  // 整理: 不要なパラメータを削除 / Clean up: Remove unnecessary params
-  ["type", "reset", "reboot", "restart"].forEach(key => {
-    url.searchParams.delete(key);
-  });
-
-  window.history.replaceState({}, '', url.toString());
+  // 現在のパスを維持しつつ、整理されたクエリ文字列でURLを更新
+  const newUrl = window.location.pathname + '?' + newParams.toString();
+  window.history.replaceState({}, '', newUrl);
 }
 
 // フッターの著作権表示ロジック / Footer Copyright Logic
