@@ -10,6 +10,8 @@
 <meta property="og:title" content="Olympic Countdown / オリンピック関連カウントダウン">
 <meta property="og:description" content="夏季・冬季オリンピックの開催まで、開催期間中、終了後の経過時間をリアルタイムで表示するカウントダウンタイマーです。">
 <meta property="og:type" content="website">
+<meta property="og:url" content="">
+<meta property="og:locale" content="ja_JP">
 <meta name="twitter:card" content="summary">
 
 <style>
@@ -269,39 +271,60 @@ const eventsData = {
 };
 
 /**
- * 残り時間のフォーマット計算
- * @param {number} ms 差分（ミリ秒）
+ * カレンダー日付ベースで差分を分解（固定30日換算を使わない）
  */
+function getCalendarDiff(fromDate, toDate) {
+  const from = new Date(fromDate);
+  const to = new Date(toDate);
+  if (to <= from) {
+    return { years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0 };
+  }
+
+  const cursor = new Date(from);
+  let years = to.getFullYear() - cursor.getFullYear();
+  const anniversary = new Date(cursor);
+  anniversary.setFullYear(cursor.getFullYear() + years);
+  if (anniversary > to) years -= 1;
+  cursor.setFullYear(cursor.getFullYear() + years);
+
+  let months = (to.getFullYear() - cursor.getFullYear()) * 12 + (to.getMonth() - cursor.getMonth());
+  const monthMark = new Date(cursor);
+  monthMark.setMonth(cursor.getMonth() + months);
+  if (monthMark > to) months -= 1;
+  cursor.setMonth(cursor.getMonth() + months);
+
+  let remainMs = to - cursor;
+  const days = Math.floor(remainMs / 86400000);
+  remainMs -= days * 86400000;
+  const hours = Math.floor(remainMs / 3600000);
+  remainMs -= hours * 3600000;
+  const minutes = Math.floor(remainMs / 60000);
+  remainMs -= minutes * 60000;
+  const seconds = Math.floor(remainMs / 1000);
+
+  return { years, months, days, hours, minutes, seconds };
+}
+
 /**
  * 残り時間のフォーマット計算
  */
-function formatDiff(ms) {
-  const sTotal = Math.floor(ms / 1000);
+function formatDiff(fromDate, toDate) {
+  const diff = getCalendarDiff(fromDate, toDate);
   const pad = (n) => String(n).padStart(2, '0');
-
-  // 年・月・日の計算
-  const y = Math.floor(sTotal / 31536000);
-  const mo = Math.floor((sTotal % 31536000) / 2592000);
-  const d = Math.floor((sTotal % 2592000) / 86400);
-
-  // 時・分・秒の計算
-  const h = Math.floor((sTotal % 86400) / 3600);
-  const m = Math.floor((sTotal % 3600) / 60);
-  const s = sTotal % 60;
 
   // 表示用文字列の組み立て
   let ymdStr = "";
-  if (y > 0) {
-    ymdStr += `${y}${lang === 'ja' ? '年' : 'y'} `;
+  if (diff.years > 0) {
+    ymdStr += `${diff.years}${lang === 'ja' ? '年' : 'y'} `;
   }
-  if (mo > 0) {
-    ymdStr += `${mo}${lang === 'ja' ? 'ヶ月' : 'mo'} `;
+  if (diff.months > 0) {
+    ymdStr += `${diff.months}${lang === 'ja' ? 'ヶ月' : 'mo'} `;
   }
-  ymdStr += `${d}${lang === 'ja' ? '日' : 'd'}`;
+  ymdStr += `${diff.days}${lang === 'ja' ? '日' : 'd'}`;
 
   const hmsStr = lang === 'ja'
-    ? `${h}時間 ${m}分 ${s}秒`
-    : `${pad(h)}h ${pad(m)}m ${pad(s)}s`;
+    ? `${diff.hours}時間 ${diff.minutes}分 ${diff.seconds}秒`
+    : `${pad(diff.hours)}h ${pad(diff.minutes)}m ${pad(diff.seconds)}s`;
 
   return { ymd: ymdStr, hms: hmsStr };
 }
@@ -422,6 +445,7 @@ function updateUI() {
   
   updateCountdown();
   updateQueryParams();
+  updateSocialMeta();
 }
 
 // カウントダウンのメインロジック / Main Countdown Logic
@@ -448,30 +472,50 @@ function updateCountdown() {
     const diffEnd = end - now;
 
     const dayNum = Math.floor(diffStart / (1000 * 60 * 60 * 24)) + 1;
-    const remaining = formatDiff(diffEnd);
+    const remaining = formatDiff(now, end);
     
     statusDisplay.textContent = (lang === "ja" ? `大会 ${dayNum} 日目 / 残り` : `Day ${dayNum} / Remaining`);
     dayDisplay.textContent = remaining.ymd;
     timeDisplay.textContent = remaining.hms;
   } 
   else {
-    let diff, prefix;
+    let prefix;
 
     if (now < start) {
-      diff = start - now;
       prefix = lang === "ja" ? "開催まで" : "Starts in";
     } else {
-      diff = now - end;
       prefix = lang === "ja" ? "終了から" : "Since closing";
     }
 
     statusDisplay.textContent = prefix;
 
-    const formatted = formatDiff(diff);
+    const formatted = now < start ? formatDiff(now, start) : formatDiff(end, now);
 
     dayDisplay.textContent = formatted.ymd;
     timeDisplay.textContent = formatted.hms;
   }
+}
+
+function updateSocialMeta() {
+  if (!currentYearKey || !eventsData[mode][currentYearKey]) return;
+  const data = eventsData[mode][currentYearKey];
+  const cityName = data.city[lang];
+  const season = lang === "ja" ? (mode === "summer" ? "夏季" : "冬季") : (mode === "summer" ? "Summer" : "Winter");
+  const title = lang === "ja"
+    ? `${currentYearKey} ${cityName} ${season}オリンピック カウントダウン`
+    : `${currentYearKey} ${cityName} ${season} Olympics Countdown`;
+  const description = lang === "ja"
+    ? `${currentYearKey}年${cityName}オリンピックまで・開催中・終了後の経過時間をリアルタイム表示。`
+    : `Real-time timer for ${currentYearKey} ${cityName} Olympics: before, during, and after the Games.`;
+  const canonicalUrl = window.location.origin + window.location.pathname + `?year=${encodeURIComponent(currentYearKey)}&lang=${encodeURIComponent(lang)}`;
+  const locale = lang === "ja" ? "ja_JP" : "en_US";
+
+  document.title = title;
+  document.querySelector('meta[name="description"]')?.setAttribute("content", description);
+  document.querySelector('meta[property="og:title"]')?.setAttribute("content", title);
+  document.querySelector('meta[property="og:description"]')?.setAttribute("content", description);
+  document.querySelector('meta[property="og:url"]')?.setAttribute("content", canonicalUrl);
+  document.querySelector('meta[property="og:locale"]')?.setAttribute("content", locale);
 }
 
 // URLクエリパラメータの同期 / Sync URL Query Parameters
