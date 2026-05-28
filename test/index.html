@@ -95,30 +95,50 @@ a.redirect-btn:hover {
 </style>
     <script>
         (function() {
+            const DEFAULT_FALLBACK_YEAR = "2028";
+            const DEFAULT_FALLBACK_LANG = "en"; // ブラウザ言語がjaでない場合のデフォルト
 
             const pathSegments = window.location.pathname.split('/').filter(Boolean);
             
-            let year = "";
-            let lang = "";
+            let year = null;
+            let lang = null;
 
-            pathSegments.forEach(segment => {
-                if (/^\d{4}$/.test(segment)) {
-                    year = segment;
-                } else if (segment === 'ja' || segment === 'en') {
-                    lang = segment;
-                }
-            });
+            // 1. クエリパラメータ (?year=2028&lang=ja) から取得を試みる
+            const params = new URLSearchParams(window.location.search);
+            const qYear = params.get('year');
+            const qLang = params.get('lang');
 
-            if (!year) year = "2028";
-            if (!lang) {
-                lang = navigator.language.startsWith('ja') ? 'ja' : 'en';
+            if (qYear && /^\d{4}$/.test(qYear)) year = qYear;
+            if (qLang === 'ja' || qLang === 'en') lang = qLang;
+
+            // 2. クエリパラメータから取得できなかった、または無効だった場合、パスの中から年と言語を抽出
+            if (!year || !lang) {
+                pathSegments.forEach(segment => {
+                    if (/^\d{4}$/.test(segment)) {
+                        if (!year) year = segment; // yearがまだnullの場合のみ設定
+                    } else if (segment === 'ja' || segment === 'en') {
+                        if (!lang) lang = segment; // langがまだnullの場合のみ設定
+                    }
+                });
             }
 
-            const params = new URLSearchParams();
-            params.set('year', year);
-            params.set('lang', lang);
+            // 3. 最終的なフォールバック
+            if (!year) year = DEFAULT_FALLBACK_YEAR;
+            if (!lang) {
+                lang = navigator.language.startsWith('ja') ? "ja" : DEFAULT_FALLBACK_LANG;
+            }
 
-            const target = window.location.origin + '/olympic-countdown/?' + params.toString();
+            // 4. リダイレクト先の判定
+            let target;
+            if (window.location.hostname === 'hamuzon.github.io') {
+                // hamuzon.github.io の場合のみ新しいパス形式へ
+                target = window.location.origin + '/olympic-countdown/' + year + '/' + lang;
+            } else {
+                // それ以外は test のないトップ（親ディレクトリ）へ移動
+                target = '../?year=' + year + '&lang=' + lang;
+            }
+            
+            window.redirectTarget = target; // 手動リンク用
             window.location.replace(target);
         })();
     </script>
@@ -126,7 +146,15 @@ a.redirect-btn:hover {
 <body>
     <div class="container">
         <p class="message">リダイレクト中...<br><span>Redirecting...</span></p>
-        <a class="redirect-btn" href="/olympic-countdown/2028/ja">自動的に移動しない場合はこちらをクリックしてください。</a>
+        <a class="redirect-btn" id="manualRedirectLink" href="#">自動的に移動しない場合はこちらをクリックしてください。</a>
     </div>
+    <script>
+        // JavaScriptの実行後に手動リダイレクトリンクのhrefを設定
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.redirectTarget) {
+                document.getElementById('manualRedirectLink').href = window.redirectTarget;
+            }
+        });
+    </script>
 </body>
 </html>
