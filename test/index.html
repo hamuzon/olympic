@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redirecting...</title>
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+/* カスタムプロパティ */
+:root {
+  --selection-bg: rgba(0, 229, 255, 0.4);
+  --selection-text: #ffffff;
+}
+
+/* リセット */
+* { margin:0; padding:0; box-sizing:border-box; }
+
+::selection {
+  background: var(--selection-bg);
+  color: var(--selection-text);
+}
+
+/* 背景と全体 */
+body {
+  background: #0a1a2b;
+  font-family: 'Roboto', sans-serif;
+  color: #fff;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background-image: radial-gradient(circle at 50% 0%, #1e3a5f 0%, #0a1a2b 70%);
+}
+
+/* コンテナ */
+.container {
+  background: rgba(255, 255, 255, 0.07);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 3rem 2rem;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 0 40px rgba(0, 229, 255, 0.3);
+  text-align: center;
+  position: relative;
+}
+
+p.message {
+  font-size: 1.2rem;
+  color: #a0e0ff;
+  margin-bottom: 2rem;
+  font-weight: 500;
+}
+
+p.message span {
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+/* ボタン (Link) */
+a.redirect-btn {
+  display: inline-block;
+  background: rgba(0, 229, 255, 0.15);
+  border: none;
+  border-radius: 20px;
+  color: #00e5ff;
+  font-weight: 600;
+  padding: 10px 24px;
+  cursor: pointer;
+  font-family: 'Roboto', sans-serif;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  text-decoration: none;
+}
+
+a.redirect-btn:hover {
+  background: rgba(0, 229, 255, 0.3);
+  transform: translateY(-1px);
+  color: #fff;
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+}
+
+/* スマホ対応 */
+@media (max-width: 480px) {
+  .container { padding: 2rem 1.5rem; }
+  p.message { font-size: 1rem; }
+  a.redirect-btn { font-size: 0.9rem; padding: 8px 18px; }
+}
+</style>
+    <script>
+        (function() {
+
+            const pathSegments = window.location.pathname.split('/').filter(Boolean);
+            
+            let year = "";
+            let lang = "";
+
+            pathSegments.forEach(segment => {
+                if (/^\d{4}$/.test(segment)) {
+                    year = segment;
+                } else if (segment === 'ja' || segment === 'en') {
+                    lang = segment;
+                }
+            });
+
+            if (!year) year = "2028";
+            if (!lang) {
+                lang = navigator.language.startsWith('ja') ? 'ja' : 'en';
+            }
+
+            const params = new URLSearchParams();
+            params.set('year', year);
+            params.set('lang', lang);
+
+            const target = window.location.origin + '/olympic-countdown/?' + params.toString();
+            window.location.replace(target);
+        })();
+    </script>
+</head>
+<body>
+    <div class="container">
+        <p class="message">リダイレクト中...<br><span>Redirecting...</span></p>
+        <a class="redirect-btn" href="/olympic-countdown/2028/ja">自動的に移動しない場合はこちらをクリックしてください。</a>
+    </div>
+</body>
+</html>
