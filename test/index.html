@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <noscript>
+        <meta http-equiv="refresh" content="0;url=https://hamuzon.github.io/olympic-countdown/2028/ja">
+    </noscript>
 <title>Redirecting...</title>
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon.ico" sizes="any">
@@ -130,8 +133,9 @@ a.redirect-btn:hover {
 
             // 4. リダイレクト先の判定
             let target;
-            if (window.location.hostname === 'hamuzon.github.io') {
-                // hamuzon.github.io の場合のみ新しいパス形式へ
+            const hostname = window.location.hostname;
+            if (hostname.endsWith('hamuzon.github.io') || hostname.endsWith('hamuzon-jp.f5.si') || hostname.endsWith('hamusata.f5.si')) {
+                // 指定のドメインの場合、olympic-countdown 形式のパスへ
                 target = window.location.origin + '/olympic-countdown/' + year + '/' + lang;
             } else {
                 // それ以外は test のないトップ（親ディレクトリ）へ移動
@@ -146,7 +150,10 @@ a.redirect-btn:hover {
 <body>
     <div class="container">
         <p class="message">リダイレクト中...<br><span>Redirecting...</span></p>
-        <a class="redirect-btn" id="manualRedirectLink" href="#">自動的に移動しない場合はこちらをクリックしてください。</a>
+        <noscript>
+            <p style="color: #ffbb33; margin-bottom: 1rem; font-size: 0.9rem;">JavaScriptが無効です。自動リダイレクトを行うには有効にしてください。</p>
+        </noscript>
+        <a class="redirect-btn" id="manualRedirectLink" href="https://hamuzon.github.io/olympic-countdown/2028/ja">自動的に移動しない場合はこちらをクリックしてください。</a>
     </div>
     <script>
         // JavaScriptの実行後に手動リダイレクトリンクのhrefを設定
