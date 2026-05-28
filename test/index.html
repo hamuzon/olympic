@@ -134,9 +134,13 @@ a.redirect-btn:hover {
             // 4. リダイレクト先の判定
             let target;
             const hostname = window.location.hostname;
-            if (hostname.endsWith('hamuzon.github.io') || hostname.endsWith('hamuzon-jp.f5.si') || hostname.endsWith('hamusata.f5.si')) {
-                // 指定のドメインの場合、olympic-countdown 形式のパスへ
+            if (hostname.endsWith('hamuzon.github.io')) {
+                // GitHub Pages の場合はパスベースのリダイレクト
                 target = window.location.origin + '/olympic-countdown/' + year + '/' + lang;
+            } else if (hostname.endsWith('hamuzon-jp.f5.si')) {
+                target = 'https://olympic-countdown.hamuzon-jp.f5.si/' + year + '/' + lang;
+            } else if (hostname.endsWith('hamusata.f5.si')) {
+                target = 'https://olympic-countdown.hamusata.f5.si/' + year + '/' + lang;
             } else {
                 // それ以外は test のないトップ（親ディレクトリ）へ移動
                 target = '../?year=' + year + '&lang=' + lang;
