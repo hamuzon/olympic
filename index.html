@@ -3,6 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<noscript>
+  <meta http-equiv="refresh" content="0;url=https://olympic-countdown.pages.dev/">
+</noscript>
+<script>
+  (function() {
+    const targetHost = 'olympic-countdown.pages.dev';
+    if (window.location.hostname === targetHost) return;
+
+    const segments = window.location.pathname.split('/').filter(Boolean);
+    const params = new URLSearchParams(window.location.search);
+
+    // 年と言語をパスまたはクエリから抽出（デフォルトは2028/ブラウザ言語）
+    const year = params.get('year') || segments.find(s => /^\d{4}$/.test(s)) || "2028";
+    const lang = params.get('lang') || segments.find(s => s === 'ja' || s === 'en') || 
+                 (navigator.language.startsWith('ja') ? "ja" : "en");
+
+    window.location.replace(`https://${targetHost}/${year}/${lang}`);
+  })();
+</script>
 <title>Olympic Countdown / オリンピック関連カウントダウン</title>
 <meta name="description" content="夏季・冬季オリンピックの開催まで、開催期間中、終了後の経過時間をリアルタイムで表示するカウントダウンタイマーです。">
 <meta name="keywords" content="オリンピック, カウントダウン, 五輪, Olympic, Countdown, 2026, 2028, 夏季, 冬季">
