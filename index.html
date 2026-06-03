@@ -9,7 +9,8 @@
 <script>
   (function() {
     const targetHost = 'olympic-countdown.pages.dev';
-    if (window.location.hostname === targetHost) return;
+    const currentHost = window.location.hostname;
+    if (currentHost === targetHost) return;
 
     const segments = window.location.pathname.split('/').filter(Boolean);
     const params = new URLSearchParams(window.location.search);
@@ -19,7 +20,26 @@
     const lang = params.get('lang') || segments.find(s => s === 'ja' || s === 'en') || 
                  (navigator.language.startsWith('ja') ? "ja" : "en");
 
-    window.location.replace(`https://${targetHost}/${year}/${lang}`);
+    const destination = `https://${targetHost}/${year}/${lang}`;
+
+    // Google Analytics (gtag) で各ドメイン（hamusata.f5.si 等）からの流入を個別計測
+    if (typeof gtag === 'function') {
+      const eventName = 'redirect_from_' + currentHost.replace(/[\.-]/g, '_');
+      gtag('event', eventName, {
+        'event_category': 'redirection',
+        'event_label': destination,
+        'transport_type': 'beacon',
+        'event_callback': function() {
+          window.location.replace(destination);
+        }
+      });
+      // 計測が失敗したり遅い場合のバックアップ（0.5秒後に強制遷移）
+      setTimeout(function() {
+        window.location.replace(destination);
+      }, 500);
+    } else {
+      window.location.replace(destination);
+    }
   })();
 </script>
 <title>Olympic Countdown / オリンピック関連カウントダウン</title>
@@ -380,14 +400,21 @@ function autoSelectNearestInMode(m) {
 
 function initAutoSelect() {
   const params = new URLSearchParams(location.search);
+  const segments = window.location.pathname.split('/').filter(Boolean);
 
   // リセット判定: reset, reboot, restart のいずれかが 1 または ON の場合
   const isReset = ["reset", "reboot", "restart"].some(k => 
     ["1", "on"].includes(params.get(k)?.toLowerCase())
   );
 
-  const qYear = params.get("year");
-  const qLang = params.get("lang");
+  // パスセグメント (/2026/ja) とクエリパラメータの両方から値を抽出
+  const pYear = segments.find(s => /^\d{4}$/.test(s));
+  const pLang = segments.find(s => s === 'ja' || s === 'en');
+
+  // パスパラメータがある場合はそれを優先、なければクエリ、なければストレージ
+  // ただしリセット時はストレージを無視
+  const qYear = params.get("year") || pYear;
+  const qLang = params.get("lang") || pLang;
 
   // 言語の初期化（URL優先）
   if (qLang === "ja" || qLang === "en") {
@@ -536,12 +563,21 @@ function updateSocialMeta() {
 
 // URLクエリパラメータの同期 / Sync URL Query Parameters
 function updateQueryParams() {
-  // 新しい URLSearchParams オブジェクトを作成することで、既存の全パラメータをクリア
   const newParams = new URLSearchParams();
 
-  // 指定された順序（1. 年, 2. 言語）でパラメータをセット
-  if (currentYearKey) newParams.set('year', currentYearKey);
-  newParams.set('lang', lang);
+  // 現在のホストが新ドメインかつパスパラメータ形式をサポートしている場合
+  // 必要に応じてクエリパラメータではなくパスの書き換えを検討できますが、
+  // 汎用性のためにクエリパラメータも維持しつつ整理します。
+  
+  const segments = window.location.pathname.split('/').filter(Boolean);
+  const isPathFormat = segments.some(s => /^\d{4}$/.test(s));
+
+  // パスに年が含まれていない場合のみ、クエリパラメータにセットする
+  if (!isPathFormat) {
+    if (currentYearKey) newParams.set('year', currentYearKey);
+    newParams.set('lang', lang);
+  }
+  // すでにパス /2028/ja にいる場合は、余計な ?year=... を付けないように制御可能
 
   // 現在のパスを維持しつつ、整理されたクエリ文字列でURLを更新
   const newUrl = window.location.pathname + '?' + newParams.toString();

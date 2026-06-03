@@ -9,7 +9,8 @@
 <script>
   (function() {
     const targetHost = 'olympic-countdown.pages.dev';
-    if (window.location.hostname === targetHost) return;
+    const currentHost = window.location.hostname;
+    if (currentHost === targetHost) return;
 
     const segments = window.location.pathname.split('/').filter(Boolean);
     const params = new URLSearchParams(window.location.search);
@@ -18,7 +19,25 @@
     const lang = params.get('lang') || segments.find(s => s === 'ja' || s === 'en') || 
                  (navigator.language.startsWith('ja') ? "ja" : "en");
 
-    window.location.replace(`https://${targetHost}/${year}/${lang}`);
+    const destination = `https://${targetHost}/${year}/${lang}`;
+
+    // 個別ドメインからの404リダイレクトを計測
+    if (typeof gtag === 'function') {
+      const eventName = '404_redirect_from_' + currentHost.replace(/[\.-]/g, '_');
+      gtag('event', eventName, {
+        'event_category': 'redirection',
+        'event_label': destination,
+        'transport_type': 'beacon',
+        'event_callback': function() {
+          window.location.replace(destination);
+        }
+      });
+      setTimeout(function() {
+        window.location.replace(destination);
+      }, 500);
+    } else {
+      window.location.replace(destination);
+    }
   })();
 </script>
 <title>404 - Not Found</title>
