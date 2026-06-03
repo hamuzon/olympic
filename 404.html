@@ -4,13 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <noscript>
-  <meta http-equiv="refresh" content="0;url=https://olympic-countdown.pages.dev/">
+  <meta http-equiv="refresh" content="0;url=https://hamuzon.github.io/olympic-countdown/">
 </noscript>
 <script>
   (function() {
     const targetHost = 'olympic-countdown.pages.dev';
     const currentHost = window.location.hostname;
-    if (!currentHost || currentHost === targetHost || currentHost === 'localhost' || currentHost === '127.0.0.1') return;
+    // 除外設定: ローカル、最終ドメイン、または既に「olympic-countdown」を含む新サブドメイン
+    if (!currentHost || currentHost === 'localhost' || currentHost === '127.0.0.1' || 
+        currentHost === targetHost || currentHost.startsWith('olympic-countdown.')) return;
 
     const segments = window.location.pathname.split('/').filter(Boolean);
     const params = new URLSearchParams(window.location.search);
@@ -19,9 +21,20 @@
     const lang = params.get('lang') || segments.find(s => s.toLowerCase() === 'ja' || s.toLowerCase() === 'en') || 
                  (navigator.language && navigator.language.startsWith('ja') ? "ja" : "en");
 
-    const destination = `https://${targetHost}/${year}/${lang}`;
+    let targetDomain = targetHost;
+    let targetPath = `/${year}/${lang}`;
 
-    // GitHub Pagesの場合は即座にリダイレクト
+    if (currentHost === 'olympic.hamusata.f5.si') {
+      targetDomain = 'olympic-countdown.hamusata.f5.si';
+    } else if (currentHost === 'olympic.hamuzon-jp.f5.si') {
+      targetDomain = 'olympic-countdown.hamuzon-jp.f5.si';
+    } else if (currentHost === 'hamuzon.github.io') {
+      targetDomain = 'hamuzon.github.io';
+      targetPath = `/olympic-countdown/${year}/${lang}`;
+    }
+
+    const destination = `https://${targetDomain}${targetPath}`;
+
     if (typeof gtag === 'function' && !currentHost.includes('github.io')) {
       const eventName = '404_redirect_from_' + currentHost.replace(/[\.-]/g, '_');
       gtag('event', eventName, {
@@ -180,8 +193,8 @@ a.back-btn:hover {
 <script>
 
     document.addEventListener('DOMContentLoaded', () => {
-      if (location.hostname === 'hamuzon.github.io' || location.hostname === 'hamuzon.github.io/olympic/') {
-        document.getElementById('backLink').href = 'https://hamuzon.github.io/olympic/';
+      if (location.hostname === 'hamuzon.github.io') {
+        document.getElementById('backLink').href = 'https://hamuzon.github.io/olympic-countdown/';
       }
     });
     
