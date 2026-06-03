@@ -10,20 +10,20 @@
   (function() {
     const targetHost = 'olympic-countdown.pages.dev';
     const currentHost = window.location.hostname;
-    if (currentHost === targetHost) return;
+    if (!currentHost || currentHost === targetHost || currentHost === 'localhost' || currentHost === '127.0.0.1') return;
 
     const segments = window.location.pathname.split('/').filter(Boolean);
     const params = new URLSearchParams(window.location.search);
 
     // 年と言語をパスまたはクエリから抽出（デフォルトは2028/ブラウザ言語）
     const year = params.get('year') || segments.find(s => /^\d{4}$/.test(s)) || "2028";
-    const lang = params.get('lang') || segments.find(s => s === 'ja' || s === 'en') || 
-                 (navigator.language.startsWith('ja') ? "ja" : "en");
+    const lang = params.get('lang') || segments.find(s => s.toLowerCase() === 'ja' || s.toLowerCase() === 'en') || 
+                 (navigator.language && navigator.language.startsWith('ja') ? "ja" : "en");
 
     const destination = `https://${targetHost}/${year}/${lang}`;
 
-    // Google Analytics (gtag) で各ドメイン（hamusata.f5.si 等）からの流入を個別計測
-    if (typeof gtag === 'function') {
+    // GitHub Pages (github.io) の場合は計測を待たずに即座にリダイレクトさせる
+    if (typeof gtag === 'function' && !currentHost.includes('github.io')) {
       const eventName = 'redirect_from_' + currentHost.replace(/[\.-]/g, '_');
       gtag('event', eventName, {
         'event_category': 'redirection',
