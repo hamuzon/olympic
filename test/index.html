@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <noscript>
-        <meta http-equiv="refresh" content="0;url=https://hamuzon.github.io/olympic-countdown/2028/ja">
+        <meta http-equiv="refresh" content="0;url=https://olympic-countdown.pages.dev/">
     </noscript>
 <title>Redirecting...</title>
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
@@ -141,9 +141,12 @@ a.redirect-btn:hover {
                 target = 'https://olympic-countdown.hamuzon-jp.f5.si/' + year + '/' + lang;
             } else if (hostname.endsWith('hamusata.f5.si')) {
                 target = 'https://olympic-countdown.hamusata.f5.si/' + year + '/' + lang;
+            } else if (hostname.endsWith('olympic-jp.pages.dev')) {
+                target = 'https://olympic-jp.pages.dev/' + year + '/' + lang;
+            } else if (hostname.endsWith('olympic-countdown.pages.dev')) {
+                target = 'https://olympic-countdown.pages.dev/' + year + '/' + lang;
             } else {
-                // それ以外は test のないトップ（親ディレクトリ）へ移動
-                target = '../?year=' + year + '&lang=' + lang;
+                target = 'https://olympic-countdown.pages.dev/' + year + '/' + lang;
             }
             
             window.redirectTarget = target; // 手動リンク用
@@ -157,15 +160,13 @@ a.redirect-btn:hover {
         <noscript>
             <p style="color: #ffbb33; margin-bottom: 1rem; font-size: 0.9rem;">JavaScriptが無効です。自動リダイレクトを行うには有効にしてください。</p>
         </noscript>
-        <a class="redirect-btn" id="manualRedirectLink" href="https://hamuzon.github.io/olympic-countdown/2028/ja">自動的に移動しない場合はこちらをクリックしてください。</a>
+        <a class="redirect-btn" id="manualRedirectLink" href="https://olympic-countdown.pages.dev/2028/ja">自動的に移動しない場合はこちらをクリックしてください。</a>
     </div>
     <script>
-        // JavaScriptの実行後に手動リダイレクトリンクのhrefを設定
-        document.addEventListener('DOMContentLoaded', () => {
-            if (window.redirectTarget) {
-                document.getElementById('manualRedirectLink').href = window.redirectTarget;
-            }
-        });
+        if (window.redirectTarget) {
+            const linkElement = document.getElementById('manualRedirectLink');
+            if (linkElement) linkElement.href = window.redirectTarget;
+        }
     </script>
 </body>
 </html>
