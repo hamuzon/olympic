@@ -37,6 +37,7 @@ jobs:
           destination: ./_site
       - name: Inject normalization script into HTML
         run: |
+          sudo chown -R $USER:$USER ./_site
           find ./_site -maxdepth 1 -name "*.html" -not -name "google*.html" -exec sed -i '/<head>/a \  <script>if(window.location.hostname.endsWith(".")){window.location.replace(window.location.href.replace(window.location.hostname,window.location.hostname.slice(0,-1)));}</script>' {} +
       - name: Remove sensitive files from deployment artifact
         run: |
