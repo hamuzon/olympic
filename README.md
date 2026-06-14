@@ -7,5 +7,5 @@ URL
 [hamuzon.github.io/olympic/](https://hamuzon.github.io/olympic/)
 
 ### 転送先
-* **ツールURL**: [hamuzon.github.io/olympic-countdown/](https://hamuzon.github.io/olympic-countdown/)
+* **URL**: [hamuzon.github.io/olympic-countdown/](https://hamuzon.github.io/olympic-countdown/)
 * **ソースコード**: [hamuzon/olympic-countdown](https://github.com/hamuzon/olympic-countdown)
