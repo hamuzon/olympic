@@ -40,17 +40,55 @@ jobs:
 
       - name: Inject Google Analytics and normalization script into HTML
         run: |
-          # 全てのHTMLファイルの<head>直後に挿入
-          find ./_site -type f -name "*.html" -not -name "google*.html" -exec sed -i '/<head[^>]*>/a \
-          <!-- Google tag (gtag.js) -->\
-          <script async src="https://www.googletagmanager.com/gtag/js?id=G-F8HVYVW05H"></script>\
-          <script>\
-            window.dataLayer = window.dataLayer || [];\
-            function gtag(){dataLayer.push(arguments);}\
-            gtag('\''js'\'', new Date());\
-            gtag('\''config'\'', '\''G-F8HVYVW05H'\'');\
-          </script>\
-          <script>if(window.location.hostname.endsWith(".")){window.location.replace(window.location.href.replace(window.location.hostname,window.location.hostname.slice(0,-1)));}</script>' {} +
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          analytics = """<!-- Google tag (gtag.js) -->
+          <script async src="https://www.googletagmanager.com/gtag/js?id=G-F8HVYVW05H"></script>
+          <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-F8HVYVW05H');
+          </script>
+          <script>
+            if (window.location.hostname.endsWith(".")) {
+              window.location.replace(
+                window.location.href.replace(
+                  window.location.hostname,
+                  window.location.hostname.slice(0, -1)
+                )
+              );
+            }
+          </script>"""
+
+          for path in Path("./_site").rglob("*.html"):
+              if path.name.startswith("google"):
+                  continue
+
+              html = path.read_text(encoding="utf-8")
+
+              # Skip files that already contain this Google Analytics tag
+              if "G-F8HVYVW05H" in html:
+                  print(f"Skipped (Analytics already present): {path}")
+                  continue
+
+              # Insert scripts immediately after the first <head> tag
+              updated_html, count = re.subn(
+                  r"<head\b[^>]*>",
+                  lambda match: match.group(0) + "\n" + analytics,
+                  html,
+                  count=1,
+                  flags=re.IGNORECASE
+              )
+
+              if count:
+                  path.write_text(updated_html, encoding="utf-8")
+                  print(f"Updated: {path}")
+              else:
+                  print(f"Skipped (no <head> tag): {path}")
+          PY
 
       - name: Remove sensitive files from deployment artifact
         run: |
