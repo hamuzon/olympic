@@ -1,30 +1,25 @@
-# Sample workflow for building and deploying a Jekyll site to GitHub Pages
+
+# Jekyll build and deploy to GitHub Pages
 name: Deploy Jekyll with GitHub Pages dependencies preinstalled
 
 on:
-  # Runs on pushes targeting the default branch
   push:
     branches: ["main"]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want these production deployments to complete.
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: false
 
 jobs:
-  # Build job
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -38,62 +33,45 @@ jobs:
           source: ./
           destination: ./_site
 
-      - name: Inject Google Analytics and normalization script into HTML
+      - name: Inject Google Analytics and normalization script
+        shell: bash
         run: |
-          python3 <<'PY'
-          from pathlib import Path
-          import re
+          set -euo pipefail
 
-          analytics = """<!-- Google tag (gtag.js) -->
-          <script async src="https://www.googletagmanager.com/gtag/js?id=G-F8HVYVW05H"></script>
-          <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-F8HVYVW05H');
-          </script>
-          <script>
-            if (window.location.hostname.endsWith(".")) {
-              window.location.replace(
-                window.location.href.replace(
-                  window.location.hostname,
-                  window.location.hostname.slice(0, -1)
-                )
-              );
-            }
-          </script>"""
+          # JekyllのDockerビルドで生成されたファイルの書き込み権限を修正
+          chmod -R u+rwX ./_site
 
-          for path in Path("./_site").rglob("*.html"):
-              if path.name.startswith("google"):
-                  continue
+          # HTMLファイルにGoogle Analyticsと末尾ドット正規化を追加
+          find ./_site -type f -name "*.html" ! -name "google*.html" -print0 |
+          while IFS= read -r -d '' file; do
+            # Google Analyticsが既にある場合は重複挿入しない
+            if grep -q 'G-F8HVYVW05H' "$file"; then
+              # Google Analyticsがあっても正規化スクリプトがなければ追加
+              if ! grep -q 'hostname.endsWith' "$file"; then
+                sed -i '/<head[^>]*>/a\
+          <script>if(window.location.hostname.endsWith(".")){window.location.replace(window.location.href.replace(window.location.hostname,window.location.hostname.slice(0,-1)));}</script>' "$file"
+              fi
+              continue
+            fi
 
-              html = path.read_text(encoding="utf-8")
+            # <head>直後に挿入
+            sed -i '/<head[^>]*>/a\
+          <!-- Google tag (gtag.js) -->\
+          <script async src="https://www.googletagmanager.com/gtag/js?id=G-F8HVYVW05H"></script>\
+          <script>\
+          window.dataLayer = window.dataLayer || [];\
+          function gtag(){dataLayer.push(arguments);}\
+          gtag('\''js'\'', new Date());\
+          gtag('\''config'\'', '\''G-F8HVYVW05H'\'');\
+          </script>\
+          <script>if(window.location.hostname.endsWith(".")){window.location.replace(window.location.href.replace(window.location.hostname,window.location.hostname.slice(0,-1)));}</script>' "$file"
+          done
 
-              # Skip files that already contain this Google Analytics tag
-              if "G-F8HVYVW05H" in html:
-                  print(f"Skipped (Analytics already present): {path}")
-                  continue
-
-              # Insert scripts immediately after the first <head> tag
-              updated_html, count = re.subn(
-                  r"<head\b[^>]*>",
-                  lambda match: match.group(0) + "\n" + analytics,
-                  html,
-                  count=1,
-                  flags=re.IGNORECASE
-              )
-
-              if count:
-                  path.write_text(updated_html, encoding="utf-8")
-                  print(f"Updated: {path}")
-              else:
-                  print(f"Skipped (no <head> tag): {path}")
-          PY
-
-      - name: Remove sensitive files from deployment artifact
+      - name: Remove files from deployment artifact
+        shell: bash
         run: |
-          # デプロイ対象から削除
-          rm -rf ./_site/functions \
+          rm -rf \
+            ./_site/functions \
             ./_site/README.md \
             ./_site/README \
             ./_site/readme.md \
@@ -108,13 +86,14 @@ jobs:
         with:
           path: ./_site
 
-  # Deployment job
   deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
     runs-on: ubuntu-latest
     needs: build
+
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
